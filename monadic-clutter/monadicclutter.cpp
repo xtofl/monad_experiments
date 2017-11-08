@@ -3,12 +3,13 @@
 
 #include "stdafx.h"
 
-#include <cassert>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
 #include <iostream>
+
+#define assert(x) if(!(x)) { std::cerr << "fail: " << #x << "\n"; return 1; }
 
 
 struct FormInput { std::string_view value; }; 
@@ -40,6 +41,7 @@ int main(const char** args, const int argc)
 {
     assert(toVoltageString({ "90" }) == "1.9V");
     assert(toVoltageString({ }) == "?");
+    assert(toVoltageString({ "not a number" }) == "?");
     return 0;
 }
 
