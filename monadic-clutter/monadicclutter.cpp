@@ -30,7 +30,8 @@ const auto toVoltage = inRange(range);
 
 auto toVoltageString(const std::vector<std::string_view> &args)
 {
-    const auto input = FormInput{ args.at(1) };
+    if (args.size() < 1) return std::string{ "?" };
+    const auto input = FormInput{ args.at(0) };
     auto v = toVoltage(fromIndex(fromForm(input)));
     return std::to_string(v.value).substr(0, 3) + "V";
 }
