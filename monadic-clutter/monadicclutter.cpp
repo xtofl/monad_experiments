@@ -19,7 +19,12 @@ struct Ratio { double value; };
 struct Voltage { double value; };
 struct VoltageRange { Voltage high; Voltage low; };
 
-Index fromForm(FormInput input) { return { atoi(input.value.data()) }; }
+std::optional<Index> fromForm(FormInput input) {
+    char *end;
+    auto i = strtol(input.value.data(), &end, 10);
+    if (end == input.value.data()) return {};
+    else return { { i } };
+}
 Ratio fromIndex(Index i) {
     return { static_cast<double>(i.value) / 100.0 };
 }
@@ -29,11 +34,13 @@ auto inRange(VoltageRange range) {
 const VoltageRange range{ { 1.0 },{ 10.0 } };
 const auto toVoltage = inRange(range);
 
-auto toVoltageString(const std::vector<std::string_view> &args)
+std::string toVoltageString(const std::vector<std::string_view> &args)
 {
-    if (args.size() < 1) return std::string{ "?" };
+    if (args.size() < 1) return "?";
     const auto input = FormInput{ args.at(0) };
-    auto v = toVoltage(fromIndex(fromForm(input)));
+    const auto index = fromForm(input);
+    if (!index) return "?";
+    auto v = toVoltage(fromIndex(*index));
     return std::to_string(v.value).substr(0, 3) + "V";
 }
 
