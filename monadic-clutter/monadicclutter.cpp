@@ -48,13 +48,17 @@ namespace safe {
 
 std::string toVoltageString(const std::vector<std::string_view> &args)
 {
-    if (args.size() < 1) return "?";
-    const auto input = FormInput{ args.at(0) };
-    const auto index = fromForm(input);
-    if (!index) return "?";
-    auto v = safe::toVoltage(fromIndex(*index));
-    if (!v) return "?";
-    return std::to_string(v->value).substr(0, 3) + "V";
+    if (args.size() >= 1) {
+        const auto input = FormInput{ args.at(0) };
+        const auto index = fromForm(input);
+        if (index) {
+            auto v = safe::toVoltage(fromIndex(*index));
+            if (v) {
+                return std::to_string(v->value).substr(0, 3) + "V";
+            }
+        }
+    }
+    return "?";
 }
 
 int main(const char** args, const int argc)
