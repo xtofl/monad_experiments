@@ -9,7 +9,8 @@
 #include <vector>
 #include <iostream>
 
-#define assert(x) if(!(x)) { std::cerr << "fail: " << #x << "\n"; return 1; }
+#define assert(x) if(!(x)) { std::cerr << "fail: " << #x << "\n"; return 1; } \
+else { std::cout << "OK: " << #x << "\n"; }
 
 
 struct FormInput { std::string_view value; }; 
