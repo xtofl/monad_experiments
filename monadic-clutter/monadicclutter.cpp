@@ -34,6 +34,17 @@ auto inRange(VoltageRange range) {
 }
 const VoltageRange range{ { 1.0 },{ 10.0 } };
 const auto toVoltage = inRange(range);
+namespace safe {
+    auto inRange(VoltageRange range) {
+        auto isSafe = [=](Ratio r) { return 0 <= r.value && r.value <= 1; };
+        auto unChecked = ::inRange(range);
+        return [=](Ratio r) -> std::optional<Voltage>{
+            if (!isSafe(r)) return {};
+            else return { unChecked(r) };
+        };
+    }
+    const auto toVoltage = safe::inRange(range);
+}
 
 std::string toVoltageString(const std::vector<std::string_view> &args)
 {
@@ -41,8 +52,9 @@ std::string toVoltageString(const std::vector<std::string_view> &args)
     const auto input = FormInput{ args.at(0) };
     const auto index = fromForm(input);
     if (!index) return "?";
-    auto v = toVoltage(fromIndex(*index));
-    return std::to_string(v.value).substr(0, 3) + "V";
+    auto v = safe::toVoltage(fromIndex(*index));
+    if (!v) return "?";
+    return std::to_string(v->value).substr(0, 3) + "V";
 }
 
 int main(const char** args, const int argc)
@@ -50,6 +62,7 @@ int main(const char** args, const int argc)
     assert(toVoltageString({ "90" }) == "1.9V");
     assert(toVoltageString({ }) == "?");
     assert(toVoltageString({ "not a number" }) == "?");
+    assert(toVoltageString({ "200" }) == "?"); // out of bounds
     return 0;
 }
 
