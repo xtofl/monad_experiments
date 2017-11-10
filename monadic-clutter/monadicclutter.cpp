@@ -76,40 +76,19 @@ namespace fp {
                 return std::make_optional(r);
             };
         };
-        template<typename F, typename ...Fs>
-        struct Composed {
-            F f;
-            using Rest = Composed<Fs...>;
-            Rest rest;
-
-            template<typename T>
-            auto apply(T &&arg) const {
-                auto first = f(arg);
-                if(first) return rest.apply(*first);
-                else return decltype(rest.apply(*first)){};
+        auto compose = [](auto f, auto ...rest) {
+            if constexpr (sizeof...(rest) > 0) {
+                auto rest = compose(rest...);
+                return [=](auto arg) {
+                    auto first = f(arg);
+                    if (first) return rest(*first);
+                    else return decltype(rest(*first)){};
+                };
+            }
+            else {
+                return f;
             }
         };
-        template<typename F>
-        struct Composed<F> {
-            F f;
-            template<typename T>
-            auto apply(T &&arg) const { return f(arg); }
-        };
-        auto compose = [](auto ...fns) {
-            const auto c = Composed<decltype(fns)...>{ fns... };
-            return [=](auto &&x) {
-                return c.apply(x);
-            };
-        };
-        //auto compose = [](auto fn, auto ...fns) {
-        //    constexpr if (sizeof(fns) == 0) {
-        //        return fn;
-        //    }
-        //    else {
-        //        auto rest = compose(fns...);
-        //        return [=](auto x) { return rest(fn(x)); };
-        //    }
-        //};
     }
 }
 
