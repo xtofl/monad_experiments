@@ -53,21 +53,6 @@ namespace safe {
 
 auto to_string(const Voltage &v) { return std::to_string(v.value).substr(0, 3) + "V"; }
 
-std::string toVoltageString(const std::vector<std::string_view> &args)
-{
-    if (args.size() >= 1) {
-        const auto input = FormInput{ args.at(0) };
-        const auto index = fromForm(input);
-        if (index) {
-            auto v = safe::toVoltage(fromIndex(*index));
-            if (v) {
-                return to_string(*v);
-            }
-        }
-    }
-    return "?";
-}
-
 namespace fp {
     namespace optional_monad {
         auto make_optional = [](auto f) {
@@ -97,7 +82,7 @@ namespace fp {
                 return make_monad(compose(f, f2));
             }
             template<typename T>
-            auto operator()(T t) { return f(t); }
+            auto operator()(T t) const { return f(t); }
         };
         template<typename F> auto make_monad(F f) { return Monad<F>{f}; }
 
@@ -112,18 +97,35 @@ namespace fp {
 }
 
 
+std::string toVoltageString(const std::vector<std::string_view> &args)
+{
+    if (args.size() >= 1) {
+        const auto input = FormInput{ args.at(0) };
+        const auto index = fromForm(input);
+        if (index) {
+            auto v = safe::toVoltage(fromIndex(*index));
+            if (v) {
+                return to_string(*v);
+            }
+        }
+    }
+    return "?";
+}
+
+const auto composed = fp::optional_monad::$
+    | fromForm
+    | fp::optional_monad::make_optional(fromIndex)
+    | safe::toVoltage
+    | to_string;
+
 int main(const char** args, const int argc)
 {
-    assert(toVoltageString({ "90" }) == "1.9V");
-    assert(toVoltageString({ }) == "?");
-    assert(toVoltageString({ "not a number" }) == "?");
-    assert(toVoltageString({ "200" }) == "?"); // out of bounds
+    exit_if_not_equal(toVoltageString({ "90" }), "1.9V");
+    exit_if_not_equal(toVoltageString({ }), "?");
+    exit_if_not_equal(toVoltageString({ "not a number" }), "?");
+    exit_if_not_equal(toVoltageString({ "200" }), "?"); // out of bounds
 
-    auto composed = fp::optional_monad::$
-        | fromForm
-        | fp::optional_monad::make_optional(fromIndex)
-        | safe::toVoltage
-        | to_string;
+
     exit_if_not_equal(composed(FormInput{ "90" }), "1.9V");
     return 0;
 }
