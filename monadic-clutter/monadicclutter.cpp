@@ -89,6 +89,25 @@ namespace fp {
                 return f;
             }
         };
+        template<typename F> struct Monad {
+            F f; 
+            // we need a left-to-right operator
+            template<typename F2>
+            auto operator | (F2 f2) const {
+                return make_monad(compose(f, f2));
+            }
+            template<typename T>
+            auto operator()(T t) { return f(t); }
+        };
+        template<typename F> auto make_monad(F f) { return Monad<F>{f}; }
+
+        struct $Begin {
+            template<typename M2>
+            auto operator | (M2 m2) const {
+                return make_monad(m2);
+            }
+        } $;
+
     }
 }
 
@@ -100,11 +119,11 @@ int main(const char** args, const int argc)
     assert(toVoltageString({ "not a number" }) == "?");
     assert(toVoltageString({ "200" }) == "?"); // out of bounds
 
-    const auto composed = fp::optional_monad::compose(
-        fromForm,
-        fp::optional_monad::make_optional(fromIndex),
-        safe::toVoltage,
-        to_string);
+    auto composed = fp::optional_monad::$
+        | fromForm
+        | fp::optional_monad::make_optional(fromIndex)
+        | safe::toVoltage
+        | to_string;
     exit_if_not_equal(composed(FormInput{ "90" }), "1.9V");
     return 0;
 }
