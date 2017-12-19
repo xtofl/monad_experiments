@@ -1,13 +1,9 @@
-// monadicclutter.cpp : Defines the entry point for the console application.
-//
-
-#include "stdafx.h"
-
 #include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
 #include <iostream>
+#include <type_traits>
 
 #define assert(x) if(!(x)) { std::cerr << "fail: " << #x << "\n"; return 1; } \
 else { std::cout << "OK: " << #x << "\n"; }
