@@ -1,3 +1,0 @@
-[submodule "optional-monad"]
-	path = optional-monad
-	url = git@github.com:octol/optional-monad.git
