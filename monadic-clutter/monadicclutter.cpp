@@ -12,7 +12,6 @@
 struct FormInput { std::string_view value; }; 
 struct Index { int value; };
 struct Ratio { double value; };
-
 struct Voltage { double value; };
 struct VoltageRange { Voltage low; Voltage high; };
 
@@ -38,8 +37,7 @@ const auto toVoltage = inRange(range);
 auto toVoltageString(const std::optional<std::string_view> &arg)
 {
     if (arg) {
-        const auto input = FormInput{ *arg };
-        auto index = fromForm(input);
+        auto index = fromForm({ *arg });
         if (index) {
             auto v = toVoltage(fromIndex(*index));
             if (v) {
