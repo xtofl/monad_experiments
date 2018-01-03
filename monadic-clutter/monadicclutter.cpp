@@ -16,7 +16,13 @@ struct Ratio { double value; };
 struct Voltage { double value; };
 struct VoltageRange { Voltage low; Voltage high; };
 
-Index fromForm(FormInput input) { return { atoi(input.value.data()) }; }
+std::optional<Index> fromForm(FormInput input) {
+    try {
+        return {{ std::stoi(input.value.data()) }};
+    } catch(const std::invalid_argument &) {
+        return {};
+    }
+};
 Ratio fromIndex(Index i) {
     return { static_cast<double>(i.value) / 100.0 };
 }
@@ -30,7 +36,9 @@ auto toVoltageString(const std::optional<std::string_view> &arg)
 {
     if (!arg) return std::string{"?"};
     const auto input = FormInput{ *arg };
-    auto v = toVoltage(fromIndex(fromForm(input)));
+    auto index = fromForm(input);
+    if (!index) return std::string{"?"};
+    auto v = toVoltage(fromIndex(*index));
     return std::to_string(v.value).substr(0, 3) + "V";
 }
 
@@ -40,6 +48,7 @@ int main(const int argc, const char** args)
     if (argc > 1) arg = {args[1]};
     std::cout << toVoltageString(arg) << std::endl;
     assert(toVoltageString({}) == "?");
+    assert(toVoltageString({ "ZORK" }) == "?");
     assert(toVoltageString({ "90" }) == "9.1V");
     return 0;
 }
