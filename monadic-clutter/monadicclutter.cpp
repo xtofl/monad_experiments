@@ -10,7 +10,7 @@ else { std::cout << "OK: " << #x << "\n"; }
 
 
 struct FormInput { std::string_view value; }; 
-struct Index { int value; };
+struct Index { long value; };
 struct Ratio { double value; };
 
 struct Voltage { double value; };
@@ -57,7 +57,7 @@ std::string toVoltageString(const std::vector<std::string_view> &args)
     return "?";
 }
 
-int main(const char** args, const int argc)
+int main(int argc, const char** args)
 {
     assert(toVoltageString({ "90" }) == "1.9V");
     assert(toVoltageString({ }) == "?");
