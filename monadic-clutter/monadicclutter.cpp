@@ -35,7 +35,10 @@ auto toVoltageString(const std::vector<std::string_view> &args)
 
 int main(const int argc, const char** args)
 {
-    std::cout << toVoltageString({args[1]}) << std::endl;
+    if (argc > 1)
+        std::cout << toVoltageString({args[1]}) << std::endl;
+    else
+        std::cout << "?" << std::endl;
     assert(toVoltageString({ "90" }) == "9.1V");
     return 0;
 }
