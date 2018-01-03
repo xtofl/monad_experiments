@@ -37,14 +37,18 @@ const auto toVoltage = inRange(range);
 
 auto toVoltageString(const std::optional<std::string_view> &arg)
 {
-    if (!arg) return std::string{"?"};
-    const auto input = FormInput{ *arg };
-    auto index = fromForm(input);
-    if (!index) return std::string{"?"};
-    auto v = toVoltage(fromIndex(*index));
-    if (!v) return std::string{"?"};
-    return std::to_string(v->value).substr(0, 3) + "V";
-}
+    if (arg) {
+        const auto input = FormInput{ *arg };
+        auto index = fromForm(input);
+        if (index) {
+            auto v = toVoltage(fromIndex(*index));
+            if (v) {
+                return std::to_string(v->value).substr(0, 3) + "V";
+            }
+        }
+    }
+    return std::string{"?"};
+ }
 
 int main(const int argc, const char** args)
 {
