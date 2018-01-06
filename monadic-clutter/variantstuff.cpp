@@ -37,28 +37,38 @@ std::ostream &operator<<(std::ostream &out, const Interval &i){
 }}
 
 int runFSM(){
-    struct WaitForOpening{ std::vector<Interval> intervals; };
-    struct OpenInterval{ std::vector<Interval> intervals; TimeStamp started; };
-    struct Ready{ std::vector<Interval> intervals; };
-
-    using State = std::variant<WaitForOpening, OpenInterval, Ready>;
     struct FSM {
+        // states
+        struct WaitForOpening{ std::vector<Interval> intervals; };
+        struct OpenInterval{ std::vector<Interval> intervals; TimeStamp started; };
+        struct Ready{ std::vector<Interval> intervals; };
+
+        using State = std::variant<WaitForOpening, OpenInterval, Ready>;
+
+        class bad_event : public std::invalid_argument {
+            public:
+            using std::invalid_argument::invalid_argument;
+        };
+
         State state = WaitForOpening{{}};
+
         bool running() const { return std::get_if<Ready>(&state) == nullptr; }
+
         void process(std::string token){
             state = std::visit(overloaded{
                 [=](WaitForOpening w) -> State {
                     if (token == "stop") { return Ready{w.intervals}; }
                     if (token == "open") { return OpenInterval{w.intervals, now()}; }
-                    return w;
+                    throw bad_event("unknown event");
                 },
                 [=](OpenInterval o) -> State  {
                     if (token == "close") {
                         o.intervals.push_back({o.started, now()});
-                        return WaitForOpening{o.intervals}; }
-                    return o;
+                        return WaitForOpening{o.intervals};
+                    }
+                    throw bad_event("unknown event");
                 },
-                [=](Ready r) -> State { return r;}
+                [=](Ready r) -> State { throw bad_event("unknown event"); }
             }, state);
         }
     } fsm;
@@ -66,9 +76,13 @@ int runFSM(){
     while(fsm.running()){
         std::string token;
         std::cin>>token;
-        fsm.process(token);
+        try {
+            fsm.process(token);
+        } catch(const FSM::bad_event& e) {
+            std::cerr << e.what() << std::endl;
+        }
     }
-    const auto &intervals = std::get<Ready>(fsm.state).intervals;
+    const auto &intervals = std::get<FSM::Ready>(fsm.state).intervals;
     std::cout << intervals.size() << " intervals\n";
     std::copy(begin(intervals), end(intervals), std::ostream_iterator<Interval>(std::cout, "\n"));
 }
