@@ -8,12 +8,39 @@
 #include <vector>
 #include <variant>
 #include <iostream>
+#include <chrono>
+#include <tuple>
 
 struct Foo { std::string bar; };
 std::ostream &operator<<(std::ostream& out, const Foo &){ return out << "a Foo";}
 
 template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
 template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+
+int runFSM(){
+    using Interval = std::tuple<std::chrono::seconds, std::chrono::seconds>;
+    struct Idle{};
+    struct WaitForOpening{ std::vector<Interval> intervals; };
+    struct OpenInterval{ std::vector<Interval> intervals; std::chrono::seconds started; };
+    struct Ready{ std::vector<Interval> intervals; };
+
+    using State = std::variant<Idle, WaitForOpening, OpenInterval, Ready>;
+
+    struct FSM {
+        State state = Idle{};
+        bool running() const { return std::get_if<Ready>(&state) == nullptr; }
+        void process(std::string token){
+            if (token == "stop") state = Ready{{}};
+        }
+    } fsm;
+
+    while(fsm.running()){
+        std::string token;
+        std::cin>>token;
+        fsm.process(token);
+    }
+    std::cout << std::get<Ready>(fsm.state).intervals.size() << " intervals\n";
+}
 
 int main(){
     using Var = std::variant<int, double, Foo>;
@@ -44,4 +71,6 @@ int main(){
         [](double d){ std::cout << "DOUBLE!!!\n";},
         [](Foo foo){ std::cout << "FOO!!!\n";}
         }, u);
+
+    runFSM();
 }
