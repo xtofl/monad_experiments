@@ -10,6 +10,7 @@
 #include <iostream>
 #include <chrono>
 #include <tuple>
+#include <iterator>
 
 struct Foo { std::string bar; };
 std::ostream &operator<<(std::ostream& out, const Foo &){ return out << "a Foo";}
@@ -17,20 +18,41 @@ std::ostream &operator<<(std::ostream& out, const Foo &){ return out << "a Foo";
 template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
 template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
+using TimeStamp = decltype(std::chrono::system_clock::now());
+using Interval = std::tuple<TimeStamp, TimeStamp>;
+namespace std {std::ostream &operator<<(std::ostream &out, const Interval &i){
+    return out << "i";
+    // return out << "interval[ "
+    //     << std::to_string(std::get<0>(i))
+    //     << ", "
+    //     << std::to_string(std::get<1>(i));
+}}
+auto now() { return std::chrono::system_clock::now();}
+
 int runFSM(){
-    using Interval = std::tuple<std::chrono::seconds, std::chrono::seconds>;
-    struct Idle{};
     struct WaitForOpening{ std::vector<Interval> intervals; };
-    struct OpenInterval{ std::vector<Interval> intervals; std::chrono::seconds started; };
+    struct OpenInterval{ std::vector<Interval> intervals; TimeStamp started; };
     struct Ready{ std::vector<Interval> intervals; };
 
-    using State = std::variant<Idle, WaitForOpening, OpenInterval, Ready>;
-
+    using State = std::variant<WaitForOpening, OpenInterval, Ready>;
     struct FSM {
-        State state = Idle{};
+        State state = WaitForOpening{{}};
         bool running() const { return std::get_if<Ready>(&state) == nullptr; }
         void process(std::string token){
-            if (token == "stop") state = Ready{{}};
+            state = std::visit(overloaded{
+                [=](WaitForOpening w) -> State {
+                    if (token == "stop") { return Ready{w.intervals}; }
+                    if (token == "open") { return OpenInterval{w.intervals, now()}; }
+                    return w;
+                },
+                [=](OpenInterval o) -> State  {
+                    if (token == "close") {
+                        o.intervals.emplace_back(o.started, now());
+                        return WaitForOpening{o.intervals}; }
+                    return o;
+                },
+                [=](Ready r) -> State { return r;}
+            }, state);
         }
     } fsm;
 
@@ -39,7 +61,9 @@ int runFSM(){
         std::cin>>token;
         fsm.process(token);
     }
-    std::cout << std::get<Ready>(fsm.state).intervals.size() << " intervals\n";
+    const auto &intervals = std::get<Ready>(fsm.state).intervals;
+    std::cout << intervals.size() << " intervals\n";
+    std::copy(begin(intervals), end(intervals), std::ostream_iterator<Interval>(std::cout, "\n"));
 }
 
 int main(){
