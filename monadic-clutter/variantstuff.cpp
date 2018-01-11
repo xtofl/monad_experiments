@@ -44,23 +44,17 @@ int runFSM(){
         struct Ready{ std::vector<Interval> intervals; };
 
         using State = std::variant<WaitForOpening, OpenInterval, Ready>;
-
-        class bad_event : public std::invalid_argument {
-            public:
-            using std::invalid_argument::invalid_argument;
-        };
-
         State state = WaitForOpening{{}};
-
-        bool running() const { return std::get_if<Ready>(&state) == nullptr; }
 
         void process(std::string token){
             state = std::visit(overloaded{
+
                 [=](WaitForOpening w) -> State {
                     if (token == "stop") { return Ready{w.intervals}; }
                     if (token == "open") { return OpenInterval{w.intervals, now()}; }
                     throw bad_event("unknown event");
                 },
+
                 [=](OpenInterval o) -> State  {
                     if (token == "close") {
                         o.intervals.push_back({o.started, now()});
@@ -68,9 +62,17 @@ int runFSM(){
                     }
                     throw bad_event("unknown event");
                 },
+
                 [=](Ready r) -> State { throw bad_event("unknown event"); }
             }, state);
         }
+
+        class bad_event : public std::invalid_argument {
+            public:
+            using std::invalid_argument::invalid_argument;
+        };
+
+        bool running() const { return std::get_if<Ready>(&state) == nullptr; }
     } fsm;
 
     while(fsm.running()){
