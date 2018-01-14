@@ -16,7 +16,9 @@ struct Ratio { double value; };
 struct Voltage { double value; };
 struct VoltageRange { Voltage low; Voltage high; };
 
-Index fromForm(FormInput input) { return { atoi(input.value.data()) }; }
+Index fromForm(FormInput input) {
+    return { std::stoi(input.value.data()) };
+}
 Ratio fromIndex(Index i) {
     return { static_cast<double>(i.value) / 100.0 };
 }
