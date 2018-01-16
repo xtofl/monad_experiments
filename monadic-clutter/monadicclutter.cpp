@@ -28,19 +28,23 @@ auto inRange(VoltageRange range) {
 const VoltageRange range{ { 1.0 },{ 10.0 } };
 const auto toVoltage = inRange(range);
 
-auto toVoltageString(const std::vector<std::string_view> &args)
+Voltage stringToVoltage(const std::string_view arg)
 {
-    const auto input = FormInput{ args.at(0) };
+    const auto input = FormInput{ arg };
     const auto index = fromForm(input);
     const auto ratio = fromIndex(index);
     const auto voltage = toVoltage(ratio);
+    return voltage;
+}
+
+std::string voltageToString(const Voltage &voltage) {
     return std::to_string(voltage.value).substr(0, 3) + "V";
 }
 
 int main(const int argc, const char** args)
 {
-    std::cout << toVoltageString({args[1]}) << std::endl;
-    assert(toVoltageString({ "90" }) == "9.1V");
+    const auto voltage = stringToVoltage(args[1]);
+    std::cout << voltageToString(voltage) << std::endl;
     return 0;
 }
 
