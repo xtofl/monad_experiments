@@ -16,8 +16,12 @@ struct Ratio { double value; };
 struct Voltage { double value; };
 struct VoltageRange { Voltage low; Voltage high; };
 
-Index fromForm(FormInput input) {
-    return { std::stoi(input.value.data()) };
+std::optional<Index> fromForm(FormInput input) {
+    try {
+        return  {{ std::stoi(input.value.data()) }};
+    } catch( const std::invalid_argument &) {
+        return {};
+    }
 }
 Ratio fromIndex(Index i) {
     return { static_cast<double>(i.value) / 100.0 };
@@ -34,13 +38,18 @@ auto transform(const std::optional<T> &arg, Ft f) -> std::optional< decltype(f(*
     if(arg) return {f(*arg)};
     else return {};
 }
+template<typename T>
+auto flatten(const std::optional<std::optional<T>> &arg) -> std::optional<T> {
+    if(arg) return *arg;
+    else return {};
+}
 
-Voltage stringToVoltage(const std::string_view arg)
+std::optional<Voltage> stringToVoltage(const std::string_view arg)
 {
     const auto input = FormInput{ arg };
     const auto index = fromForm(input);
-    const auto ratio = fromIndex(index);
-    const auto voltage = toVoltage(ratio);
+    const auto ratio = transform(index, fromIndex);
+    const auto voltage = transform(ratio, toVoltage);
     return voltage;
 }
 
@@ -52,7 +61,7 @@ int main(const int argc, const char** args)
 {
     std::optional<std::string_view> arg;
     if(argc > 1) arg = args[1];
-    const auto voltage = transform(arg, stringToVoltage);
+    const auto voltage = flatten(transform(arg, stringToVoltage));
     std::cout << transform(voltage, voltageToString).value_or("?") << std::endl;
     return 0;
 }
