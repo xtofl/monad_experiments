@@ -43,8 +43,10 @@ std::string voltageToString(const Voltage &voltage) {
 
 int main(const int argc, const char** args)
 {
-    const auto voltage = stringToVoltage(args[1]);
-    std::cout << voltageToString(voltage) << std::endl;
+    std::optional<std::string_view> arg;
+    if(argc > 1) arg = args[1];
+    const std::optional<Voltage> voltage = arg ? stringToVoltage(*arg) : std::optional<Voltage>{};
+    std::cout << (voltage ? voltageToString(*voltage) : "?") << std::endl;
     return 0;
 }
 
