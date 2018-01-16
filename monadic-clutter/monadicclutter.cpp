@@ -28,6 +28,13 @@ auto inRange(VoltageRange range) {
 const VoltageRange range{ { 1.0 },{ 10.0 } };
 const auto toVoltage = inRange(range);
 
+template<typename T, typename Ft>
+auto transform(const std::optional<T> &arg, Ft f) -> std::optional< decltype(f(*arg)) >
+{
+    if(arg) return {f(*arg)};
+    else return {};
+}
+
 Voltage stringToVoltage(const std::string_view arg)
 {
     const auto input = FormInput{ arg };
@@ -45,8 +52,8 @@ int main(const int argc, const char** args)
 {
     std::optional<std::string_view> arg;
     if(argc > 1) arg = args[1];
-    const std::optional<Voltage> voltage = arg ? stringToVoltage(*arg) : std::optional<Voltage>{};
-    std::cout << (voltage ? voltageToString(*voltage) : "?") << std::endl;
+    const auto voltage = transform(arg, stringToVoltage);
+    std::cout << transform(voltage, voltageToString).value_or("?") << std::endl;
     return 0;
 }
 
