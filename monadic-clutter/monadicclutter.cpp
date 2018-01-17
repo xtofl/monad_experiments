@@ -27,7 +27,10 @@ Ratio fromIndex(Index i) {
     return { static_cast<double>(i.value) / 100.0 };
 }
 auto inRange(VoltageRange range) {
-    return [=](Ratio r) { return Voltage{ range.low.value + r.value * (range.high.value - range.low.value) }; };
+    return [=](Ratio r) -> std::optional<Voltage> {
+        if (r.value < .0 || r.value > 1.0) return {};
+        else return { { range.low.value + r.value * (range.high.value - range.low.value) } };
+    };
 }
 const VoltageRange range{ { 1.0 },{ 10.0 } };
 const auto toVoltage = inRange(range);
@@ -50,7 +53,7 @@ std::optional<Voltage> stringToVoltage(const std::string_view arg)
     const auto input = FormInput{ arg };
     const auto index = fromForm(input);
     const auto ratio = transform(index, fromIndex);
-    const auto voltage = transform(ratio, toVoltage);
+    const auto voltage = flatten(transform(ratio, toVoltage));
     return voltage;
 }
 
