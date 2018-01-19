@@ -36,6 +36,11 @@ const VoltageRange range{ { 1.0 },{ 10.0 } };
 const auto toVoltage = inRange(range);
 
 template<typename T>
+auto flatten(const T &arg) {
+    return arg;
+}
+
+template<typename T>
 auto flatten(const std::optional<std::optional<T>> &arg) -> std::optional<T> {
     if (arg) return *arg;
     else return {};
@@ -48,12 +53,17 @@ auto transform(const std::optional<T> &arg, Ft f) -> std::optional< decltype(f(*
     else return {};
 }
 
+template<typename T, typename Ft>
+auto flat_transform(const std::optional<T> &arg, Ft f) {
+    return flatten(transform(arg, f));
+}
+
 std::optional<Voltage> stringToVoltage(const std::string_view arg)
 {
     const auto input = FormInput{ arg };
     const auto index = fromForm(input);
-    const auto ratio = transform(index, fromIndex);
-    const auto voltage = flatten(transform(ratio, toVoltage));
+    const auto ratio = flat_transform(index, fromIndex);
+    const auto voltage = flat_transform(ratio, toVoltage);
     return voltage;
 }
 
@@ -65,8 +75,8 @@ int main(const int argc, const char** args)
 {
     std::optional<std::string_view> arg;
     if(argc > 1) arg = args[1];
-    const auto voltage = flatten(transform(arg, stringToVoltage));
-    std::cout << transform(voltage, voltageToString).value_or("?") << std::endl;
+    const auto voltage = flat_transform(arg, stringToVoltage);
+    std::cout << flat_transform(voltage, voltageToString).value_or("?") << std::endl;
     return 0;
 }
 
