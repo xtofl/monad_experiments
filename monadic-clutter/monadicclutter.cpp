@@ -58,12 +58,22 @@ auto flat_transform(const std::optional<T> &arg, Ft f) {
     return flatten(transform(arg, f));
 }
 
+template<typename F>
+auto m(F f) {
+    return [=](const auto &arg) {
+        return flat_transform(arg, f);
+    };
+}
+
+auto m_fromIndex = m(fromIndex);
+auto m_toVoltage = m(toVoltage);
+
 std::optional<Voltage> stringToVoltage(const std::string_view arg)
 {
     const auto input = FormInput{ arg };
     const auto index = fromForm(input);
-    const auto ratio = flat_transform(index, fromIndex);
-    const auto voltage = flat_transform(ratio, toVoltage);
+    const auto ratio = m_fromIndex(index);
+    const auto voltage = m_toVoltage(ratio);
     return voltage;
 }
 
@@ -75,8 +85,8 @@ int main(const int argc, const char** args)
 {
     std::optional<std::string_view> arg;
     if(argc > 1) arg = args[1];
-    const auto voltage = flat_transform(arg, stringToVoltage);
-    std::cout << flat_transform(voltage, voltageToString).value_or("?") << std::endl;
+    const auto voltage = m(stringToVoltage)(arg);
+    std::cout << m(voltageToString)(voltage).value_or("?") << std::endl;
     return 0;
 }
 
