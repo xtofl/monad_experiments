@@ -7,7 +7,7 @@
 #include <string_view>
 #include <vector>
 #include <iostream>
-
+#include <type_traits>
 
 struct FormInput { std::string_view value; }; 
 struct Index { int value; };
@@ -48,8 +48,23 @@ std::string voltageToString(const Voltage &voltage) {
 
 int main(const int argc, const char** args)
 {
-    const auto voltage = stringToVoltage(args[1]);
-    std::cout << voltageToString(voltage) << std::endl;
+    {
+        const auto voltage = stringToVoltage(std::string_view("1.1"));
+        static_assert(std::is_same_v<decltype(voltage), Voltage)
+        std::cout << voltageToString(voltage) << std::endl;
+    }
+    {
+        std::optional<string_view> arg;
+        if (argc > 1) arg = args[1];
+        const auto voltage = stringToVoltage(arg);
+        static_assert(std::is_same_v<decltype(voltage), std::optional<Voltage>>)
+        std::cout << voltageToString(voltage) << std::endl;
+    }
+    {
+        const auto voltage = stringToVoltage(std::vector<std::string_view>{"1.1", "1.2", "1.4"});
+        static_assert(std::is_same_v<decltype(voltage), std::vector<Voltage>)
+        std::cout << voltageToString(voltage) << std::endl;
+    }
     return 0;
 }
 
