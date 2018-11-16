@@ -33,12 +33,28 @@ auto formInput = [](auto arg)
     return FormInput{ arg };
 };
 
-auto stringToVoltage = [](auto arg)
+namespace monads {
+    struct Id {
+        template<typename T>
+        static T mGet(T t) { return t; }
+
+        template<typename FAR, typename A>
+        static auto mMap(FAR f, A a) { return f(a); }
+
+        template<typename T>
+        static T mReturn(T t) { return t; }
+
+        template<typename T>
+        static T mBind(T t) { return t; }
+    };
+}
+
+template<typename M = monads::Id>
+auto stringToVoltage(FormInput input)
 {
-    const auto input = formInput(arg);
-    const auto index = fromForm(input);
-    const auto ratio = fromIndex(index);
-    const auto voltage = toVoltage(ratio);
+    const auto index = M::mMap(fromForm, input);
+    const auto ratio = M::mMap(fromIndex, index);
+    const auto voltage = M::mMap(toVoltage, ratio);
     return voltage;
 };
 
@@ -49,22 +65,29 @@ std::string voltageToString(const Voltage &voltage) {
 int main(const int argc, const char** args)
 {
     {
-        const auto voltage = stringToVoltage(std::string_view("1.1"));
-        static_assert(std::is_same_v<decltype(voltage), Voltage)
+        using M = monads::Id;
+        using namespace std;
+        static_assert(is_same_v<Voltage, decltype(M::mReturn(declval<Voltage>()))>);
+        static_assert(is_same_v<Voltage, decltype(M::mMap(toVoltage, declval<Ratio>()))>);
+        static_assert(is_same_v<Ratio, decltype(M::mMap(fromIndex, declval<Index>()))>);
+        static_assert(is_same_v<Index, decltype(M::mMap(fromForm, declval<FormInput>()))>);
+        static_assert(is_same_v<Voltage, decltype(M::mMap(stringToVoltage<M>, declval<FormInput>()))>);
+
+        const auto voltage = stringToVoltage(FormInput{std::string_view("1.1")});
         std::cout << voltageToString(voltage) << std::endl;
     }
-    {
-        std::optional<string_view> arg;
-        if (argc > 1) arg = args[1];
-        const auto voltage = stringToVoltage(arg);
-        static_assert(std::is_same_v<decltype(voltage), std::optional<Voltage>>)
-        std::cout << voltageToString(voltage) << std::endl;
-    }
-    {
-        const auto voltage = stringToVoltage(std::vector<std::string_view>{"1.1", "1.2", "1.4"});
-        static_assert(std::is_same_v<decltype(voltage), std::vector<Voltage>)
-        std::cout << voltageToString(voltage) << std::endl;
-    }
+    // {
+    //     std::optional<string_view> arg;
+    //     if (argc > 1) arg = args[1];
+    //     const auto voltage = stringToVoltage(arg);
+    //     static_assert(std::is_same_v<decltype(voltage), std::optional<Voltage>>)
+    //     std::cout << voltageToString(voltage) << std::endl;
+    // }
+    // {
+    //     const auto voltage = stringToVoltage(std::vector<std::string_view>{"1.1", "1.2", "1.4"});
+    //     static_assert(std::is_same_v<decltype(voltage), std::vector<Voltage>)
+    //     std::cout << voltageToString(voltage) << std::endl;
+    // }
     return 0;
 }
 
