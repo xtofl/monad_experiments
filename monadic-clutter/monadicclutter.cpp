@@ -9,6 +9,7 @@
 #include <iostream>
 #include <type_traits>
 #include <optional>
+#include <algorithm>
 
 struct FormInput { std::string_view value; }; 
 struct Index { int value; };
@@ -76,6 +77,32 @@ namespace monads {
         template<typename T>
         static auto mBind(std::optional<T> t) { return t; }
     };
+    struct Vector
+    {
+        template<typename T> using M = std::vector<T>;
+
+        template<typename FAR, typename A>
+        static auto mMap(FAR f, std::vector<A> ma) {
+            using R = decltype(f(ma[0]));
+            std::vector<R> result;
+            std::transform(begin(ma), end(ma), std::back_inserter(result), f);
+            return result;
+        }
+
+        template<typename T>
+        static auto mReturn(T t) { return std::vector<T>{{t}}; }
+
+        template<typename T>
+        static auto mBind(std::vector<std::vector<T>> t) {
+            std::vector<T> result;
+            for(const auto &ts: t)
+                result.insert(end(result), begin(ts), end(ts));
+            return result;
+        }
+
+        template<typename T>
+        static auto mBind(std::vector<T> t) { return t; }
+    };
 }
 
 template<typename M = monads::Id>
@@ -120,6 +147,23 @@ int main(const int argc, const char** args)
 
         const auto voltage = stringToVoltage<M>(arg);
         std::cout << arg->value << ": " << M::mMap(voltageToString, voltage).value_or("?") << std::endl;
+    }
+    {
+        using M = monads::Vector;
+        std::vector<std::string_view> argss{"1", "2", "3", "4"};
+        std::vector<FormInput> args;
+        for(auto arg: argss) args.push_back({arg});
+        using namespace std;
+        static_assert(is_same_v<vector<Voltage>, decltype(M::mReturn(declval<Voltage>()))>);
+        static_assert(is_same_v<vector<Voltage>, decltype(M::mMap(toVoltage, declval<vector<Ratio>>()))>);
+        static_assert(is_same_v<vector<Ratio>, decltype(M::mMap(fromIndex, declval<vector<Index>>()))>);
+        static_assert(is_same_v<vector<Index>, decltype(M::mMap(fromForm, declval<vector<FormInput>>()))>);
+        static_assert(is_same_v<vector<Voltage>, decltype(M::mMap(stringToVoltage<monads::Id>, declval<vector<FormInput>>()))>);
+
+        const auto voltage = M::mBind(stringToVoltage<M>(args));
+        for(const auto &v: voltage) {
+            std::cout << voltageToString(v) << "\n";
+        }
     }
     return 0;
 }
