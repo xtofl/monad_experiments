@@ -8,6 +8,7 @@
 #include <vector>
 #include <iostream>
 #include <type_traits>
+#include <optional>
 
 struct FormInput { std::string_view value; }; 
 struct Index { int value; };
@@ -35,11 +36,13 @@ auto formInput = [](auto arg)
 
 namespace monads {
     struct Id {
+        template<typename T> using M = T;
+
         template<typename T>
         static T mGet(T t) { return t; }
 
-        template<typename FAR, typename A>
-        static auto mMap(FAR f, A a) { return f(a); }
+        template<typename FAR, typename MA>
+        static auto mMap(FAR f, MA ma) { return f(mGet(ma)); }
 
         template<typename T>
         static T mReturn(T t) { return t; }
@@ -47,10 +50,31 @@ namespace monads {
         template<typename T>
         static T mBind(T t) { return t; }
     };
+    struct Optional
+    {
+        template<typename T> using M = std::optional<T>;
+
+        template<typename T>
+        static auto mGet(std::optional<T> mt) { return *mt; }
+
+        template<typename FAR, typename A>
+        static auto mMap(FAR f, std::optional<A> ma) {
+            return mReturn(f(mGet(ma)));
+        }
+
+        template<typename T>
+        static auto mReturn(T t) { return mBind(std::optional<T>{t}); }
+
+        template<typename T>
+        static auto mBind(std::optional<std::optional<T>> t) { return *t; }
+
+        template<typename T>
+        static auto mBind(std::optional<T> t) { return t; }
+    };
 }
 
 template<typename M = monads::Id>
-auto stringToVoltage(FormInput input)
+auto stringToVoltage(typename M::template M<FormInput> input)
 {
     const auto index = M::mMap(fromForm, input);
     const auto ratio = M::mMap(fromIndex, index);
@@ -76,18 +100,20 @@ int main(const int argc, const char** args)
         const auto voltage = stringToVoltage(FormInput{std::string_view("1.1")});
         std::cout << voltageToString(voltage) << std::endl;
     }
-    // {
-    //     std::optional<string_view> arg;
-    //     if (argc > 1) arg = args[1];
-    //     const auto voltage = stringToVoltage(arg);
-    //     static_assert(std::is_same_v<decltype(voltage), std::optional<Voltage>>)
-    //     std::cout << voltageToString(voltage) << std::endl;
-    // }
-    // {
-    //     const auto voltage = stringToVoltage(std::vector<std::string_view>{"1.1", "1.2", "1.4"});
-    //     static_assert(std::is_same_v<decltype(voltage), std::vector<Voltage>)
-    //     std::cout << voltageToString(voltage) << std::endl;
-    // }
+    {
+        using M = monads::Optional;
+        std::optional<FormInput> arg;
+        if (argc > 1) arg = {std::string_view(args[1])};
+        using namespace std;
+        static_assert(is_same_v<optional<Voltage>, decltype(M::mReturn(declval<Voltage>()))>);
+        static_assert(is_same_v<optional<Voltage>, decltype(M::mMap(toVoltage, declval<optional<Ratio>>()))>);
+        static_assert(is_same_v<optional<Ratio>, decltype(M::mMap(fromIndex, declval<optional<Index>>()))>);
+        static_assert(is_same_v<optional<Index>, decltype(M::mMap(fromForm, declval<optional<FormInput>>()))>);
+        static_assert(is_same_v<optional<Voltage>, decltype(M::mMap(stringToVoltage<M>, declval<optional<FormInput>>()))>);
+
+        const auto voltage = stringToVoltage<M>(arg);
+        std::cout << voltageToString(*voltage) << std::endl;
+    }
     return 0;
 }
 
