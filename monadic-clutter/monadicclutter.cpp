@@ -51,6 +51,22 @@ namespace monads {
         template<typename T>
         static T mBind(T t) { return t; }
     };
+}
+
+template<typename M = monads::Id>
+auto stringToVoltage(typename M::template M<FormInput> input)
+{
+    const auto index = M::mMap(fromForm, input);
+    const auto ratio = M::mMap(fromIndex, index);
+    const auto voltage = M::mMap(toVoltage, ratio);
+    return voltage;
+};
+
+std::string voltageToString(const Voltage &voltage) {
+    return std::to_string(voltage.value).substr(0, 3) + "V";
+}
+
+namespace monads {
     struct Optional
     {
         template<typename T> using M = std::optional<T>;
@@ -104,20 +120,6 @@ namespace monads {
         static auto mBind(std::vector<T> t) { return t; }
     };
 }
-
-template<typename M = monads::Id>
-auto stringToVoltage(typename M::template M<FormInput> input)
-{
-    const auto index = M::mMap(fromForm, input);
-    const auto ratio = M::mMap(fromIndex, index);
-    const auto voltage = M::mMap(toVoltage, ratio);
-    return voltage;
-};
-
-std::string voltageToString(const Voltage &voltage) {
-    return std::to_string(voltage.value).substr(0, 3) + "V";
-}
-
 int main(const int argc, const char** args)
 {
     {
