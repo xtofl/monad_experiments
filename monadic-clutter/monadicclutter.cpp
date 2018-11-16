@@ -59,14 +59,19 @@ namespace monads {
 
         template<typename FAR, typename A>
         static auto mMap(FAR f, std::optional<A> ma) {
-            return mReturn(f(mGet(ma)));
+            // exceptions to empty optional
+            try {
+                if (ma)
+                    return mReturn(f(mGet(ma)));
+            } catch(...) {}
+            return decltype(mReturn(f(mGet(ma)))){};
         }
 
         template<typename T>
         static auto mReturn(T t) { return mBind(std::optional<T>{t}); }
 
         template<typename T>
-        static auto mBind(std::optional<std::optional<T>> t) { return *t; }
+        static auto mBind(std::optional<std::optional<T>> t) { return t.value_or(std::optional<T>{}); }
 
         template<typename T>
         static auto mBind(std::optional<T> t) { return t; }
@@ -111,8 +116,10 @@ int main(const int argc, const char** args)
         static_assert(is_same_v<optional<Index>, decltype(M::mMap(fromForm, declval<optional<FormInput>>()))>);
         static_assert(is_same_v<optional<Voltage>, decltype(M::mMap(stringToVoltage<M>, declval<optional<FormInput>>()))>);
 
+        assert(!M::mMap(fromForm, optional{FormInput{std::string_view{"x"}}}));
+
         const auto voltage = stringToVoltage<M>(arg);
-        std::cout << voltageToString(*voltage) << std::endl;
+        std::cout << arg->value << ": " << M::mMap(voltageToString, voltage).value_or("?") << std::endl;
     }
     return 0;
 }
