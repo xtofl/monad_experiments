@@ -10,6 +10,7 @@
 #include <type_traits>
 #include <optional>
 #include <algorithm>
+#include <map>
 
 struct FormInput { std::string_view value; }; 
 struct Index { int value; };
@@ -119,6 +120,31 @@ namespace monads {
         template<typename T>
         static auto mBind(std::vector<T> t) { return t; }
     };
+    struct StringMap
+    {
+        template <typename T>
+        using M = std::map<std::string, T>;
+
+        template <typename T>
+        static auto mReturn(T t)
+        {
+            return M<T>{{"", t}};
+        }
+
+        template <typename FAR, typename T>
+        static auto mMap(FAR f, M<T> ma)
+        {
+            M<decltype(f(ma[""]))> result;
+            return result;
+        }
+
+        template <typename T>
+        static auto mBind(M<M<T>> mma)
+        {
+            M<T> result;
+            return result;
+        }
+    };
 }
 int main(const int argc, const char** args)
 {
@@ -166,6 +192,24 @@ int main(const int argc, const char** args)
         const auto voltage = M::mBind(stringToVoltage<M>(args));
         for(const auto &v: voltage) {
             std::cout << voltageToString(v) << "\n";
+        }
+        {
+            const std::map<std::string, FormInput> inputs{
+                {"a", {"1"}},
+                {"b", {"2"}},
+                {"c", {"3"}}};
+
+            using M = monads::StringMap;
+            using namespace std;
+            static_assert(is_same_v<std::map<std::string, Index>, decltype(M::mMap(fromForm, inputs))>);
+            static_assert(is_same_v<std::map<std::string, int>, decltype(M::mReturn(1))>);
+            using nested_map =
+                std::map<std::string, std::map<std::string, int>>;
+            static_assert(is_same_v
+            <
+                std::map<std::string, int>,
+                decltype(M::mBind(declval<nested_map>()))
+            >);
         }
     }
     return 0;
