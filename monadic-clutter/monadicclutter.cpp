@@ -135,6 +135,8 @@ namespace monads {
         static auto mMap(FAR f, M<T> ma)
         {
             M<decltype(f(ma[""]))> result;
+            for(const auto &kv: ma)
+                result[kv.first] = f(kv.second);
             return result;
         }
 
@@ -142,7 +144,17 @@ namespace monads {
         static auto mBind(M<M<T>> mma)
         {
             M<T> result;
+            for(const auto &ma: mma) {
+                for(const auto &kv: ma.second) {
+                    result[ma.first + kv.first] = kv.second;
+                }
+            }
             return result;
+        }
+        template <typename T>
+        static auto mBind(M<T> ma)
+        {
+            return ma;
         }
     };
 }
@@ -210,6 +222,11 @@ int main(const int argc, const char** args)
                 std::map<std::string, int>,
                 decltype(M::mBind(declval<nested_map>()))
             >);
+
+            auto results = stringToVoltage<M>(inputs);
+            for(const auto &kv: results) {
+                std::cout << kv.first << " -> " << voltageToString(kv.second) << "\n";
+            }
         }
     }
     return 0;
