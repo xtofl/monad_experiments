@@ -187,7 +187,7 @@ int main(const int argc, const char** args)
         assert(!M::mMap(fromForm, optional{FormInput{std::string_view{"x"}}}));
 
         const auto voltage = stringToVoltage<M>(arg);
-        std::cout << arg->value << ": " << M::mMap(voltageToString, voltage).value_or("?") << std::endl;
+        std::cout << arg.value_or(FormInput{"no argument"}).value << ": " << M::mMap(voltageToString, voltage).value_or("?") << std::endl;
     }
     {
         using M = monads::Vector;
